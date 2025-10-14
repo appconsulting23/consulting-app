@@ -13,7 +13,7 @@ def init_db():
     with engine.connect() as conn:
         # Consultants table
         conn.execute(text('''
-            CREATE TABLE IF NOT EXISTS consultants (
+            CREATE TABLE IF NOT EXISTS public.consultants (
                 role TEXT PRIMARY KEY,
                 annual_salary REAL,
                 fixed_cost REAL
@@ -28,13 +28,13 @@ def init_db():
         ]
         for default in defaults:
             conn.execute(text('''
-                INSERT INTO consultants (role, annual_salary, fixed_cost)
+                INSERT INTO public.consultants (role, annual_salary, fixed_cost)
                 VALUES (:role, :salary, :fixed)
                 ON CONFLICT (role) DO NOTHING
             '''), {'role': default[0], 'salary': default[1], 'fixed': default[2]})
         # Projects table
         conn.execute(text('''
-            CREATE TABLE IF NOT EXISTS projects (
+            CREATE TABLE IF NOT EXISTS public.projects (
                 id SERIAL PRIMARY KEY,
                 name TEXT,
                 duration INTEGER,
@@ -49,7 +49,7 @@ init_db()
 # Helper functions
 def get_consultants():
     with engine.connect() as conn:
-        df = pd.read_sql_query(text("SELECT * FROM consultants"), conn)
+        df = pd.read_sql_query(text("SELECT * FROM public.consultants"), conn)
     return df
 
 def calculate_costs(duration, assignments):
@@ -65,8 +65,8 @@ def calculate_costs(duration, assignments):
 
 def save_project(name, duration, sales_price, assignments):
     with engine.connect() as conn:
-        conn.execute(text('''
-            INSERT INTO projects (name, duration, sales_price, consultants_json)
+        result = conn.execute(text('''
+            INSERT INTO public.projects (name, duration, sales_price, consultants_json)
             VALUES (:name, :duration, :sales_price, :consultants_json)
         '''), {
             'name': name,
@@ -75,11 +75,15 @@ def save_project(name, duration, sales_price, assignments):
             'consultants_json': json.dumps(assignments)
         })
         conn.commit()
+        # Debug: Check the last inserted ID
+        last_id = conn.execute(text('SELECT LASTVAL()')).scalar()
+        print(f"Saved project {name} with ID: {last_id}")
+        st.write(f"Debug: Saved project {name} with ID: {last_id}")
 
 def update_project(project_id, name, duration, sales_price, assignments):
     with engine.connect() as conn:
         conn.execute(text('''
-            UPDATE projects
+            UPDATE public.projects
             SET name=:name, duration=:duration, sales_price=:sales_price, consultants_json=:consultants_json
             WHERE id=:id
         '''), {
@@ -93,18 +97,18 @@ def update_project(project_id, name, duration, sales_price, assignments):
 
 def delete_project(project_id):
     with engine.connect() as conn:
-        conn.execute(text("DELETE FROM projects WHERE id=:id"), {'id': project_id})
+        conn.execute(text("DELETE FROM public.projects WHERE id=:id"), {'id': project_id})
         conn.commit()
 
 def get_projects():
     with engine.connect() as conn:
-        df = pd.read_sql_query(text("SELECT * FROM projects"), conn)
+        df = pd.read_sql_query(text("SELECT * FROM public.projects"), conn)
     return df
 
 def add_consultant(role, annual_salary, fixed_cost):
     with engine.connect() as conn:
         conn.execute(text('''
-            INSERT INTO consultants (role, annual_salary, fixed_cost)
+            INSERT INTO public.consultants (role, annual_salary, fixed_cost)
             VALUES (:role, :annual_salary, :fixed_cost)
             ON CONFLICT (role) DO UPDATE SET
                 annual_salary = EXCLUDED.annual_salary,
@@ -118,7 +122,7 @@ def add_consultant(role, annual_salary, fixed_cost):
 
 def delete_consultant(role):
     with engine.connect() as conn:
-        conn.execute(text("DELETE FROM consultants WHERE role=:role"), {'role': role})
+        conn.execute(text("DELETE FROM public.consultants WHERE role=:role"), {'role': role})
         conn.commit()
 
 def export_to_excel(df, filename):
