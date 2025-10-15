@@ -161,22 +161,35 @@ def delete_consultant(role):
         st.error(f"Delete consultant failed: {e}")
 
 def export_to_excel(df, filename):
-    df.to_excel(filename, index=False)
-    return filename
+    try:
+        df.to_excel(filename, index=False)
+        return filename
+    except ModuleNotFoundError:
+        st.error("Excel export failed: 'openpyxl' is not installed. Exporting to CSV instead.")
+        csv_filename = filename.replace('.xlsx', '.csv')
+        df.to_csv(csv_filename, index=False)
+        return csv_filename
+    except Exception as e:
+        st.error(f"Export to Excel failed: {e}")
+        return None
 
 def export_to_pdf(df, filename):
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_font("Arial", size=12)
-    for col in df.columns:
-        pdf.cell(40, 10, str(col), 1)
-    pdf.ln()
-    for _, row in df.iterrows():
-        for val in row:
-            pdf.cell(40, 10, str(val), 1)
+    try:
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.set_font("Arial", size=12)
+        for col in df.columns:
+            pdf.cell(40, 10, str(col), 1)
         pdf.ln()
-    pdf.output(filename)
-    return filename
+        for _, row in df.iterrows():
+            for val in row:
+                pdf.cell(40, 10, str(val), 1)
+            pdf.ln()
+        pdf.output(filename)
+        return filename
+    except Exception as e:
+        st.error(f"Export to PDF failed: {e}")
+        return None
 
 # App layout
 st.set_page_config(page_title="Consulting Project Evaluator", layout="wide")
@@ -276,14 +289,16 @@ else:
                             'Total Cost': total_cost, 'Profit': profit, 'Margin': margin
                         }])
                         excel_file = export_to_excel(df_single, f"{row['name']}.xlsx")
-                        with open(excel_file, "rb") as f:
-                            st.download_button("Export to Excel", f, file_name=f"{row['name']}.xlsx")
-                        os.remove(excel_file)  # Clean up file
+                        if excel_file:
+                            with open(excel_file, "rb") as f:
+                                st.download_button("Export to Excel", f, file_name=f"{row['name']}.xlsx")
+                            os.remove(excel_file)  # Clean up file
                     with col3:
                         pdf_file = export_to_pdf(df_single, f"{row['name']}.pdf")
-                        with open(pdf_file, "rb") as f:
-                            st.download_button("Export to PDF", f, file_name=f"{row['name']}.pdf")
-                        os.remove(pdf_file)  # Clean up file
+                        if pdf_file:
+                            with open(pdf_file, "rb") as f:
+                                st.download_button("Export to PDF", f, file_name=f"{row['name']}.pdf")
+                            os.remove(pdf_file)  # Clean up file
             
             # Export all
             st.subheader("Export All Projects")
@@ -293,14 +308,16 @@ else:
             col1, col2 = st.columns(2)
             with col1:
                 all_excel = export_to_excel(all_df, "all_projects.xlsx")
-                with open(all_excel, "rb") as f:
-                    st.download_button("Export All to Excel", f, file_name="all_projects.xlsx")
-                os.remove(all_excel)  # Clean up
+                if all_excel:
+                    with open(all_excel, "rb") as f:
+                        st.download_button("Export All to Excel", f, file_name="all_projects.xlsx")
+                    os.remove(all_excel)  # Clean up
             with col2:
                 all_pdf = export_to_pdf(all_df, "all_projects.pdf")
-                with open(all_pdf, "rb") as f:
-                    st.download_button("Export All to PDF", f, file_name="all_projects.pdf")
-                os.remove(all_pdf)  # Clean up
+                if all_pdf:
+                    with open(all_pdf, "rb") as f:
+                        st.download_button("Export All to PDF", f, file_name="all_projects.pdf")
+                    os.remove(all_pdf)  # Clean up
         else:
             st.info("No saved projects yet.")
 
