@@ -329,6 +329,8 @@ else:
     elif page == "Manage Consultants":
         st.title("Manage Consultants")
         consultants = get_consultants()
+        # Shift index to start from 1 for display
+        consultants.index = consultants.index + 1
         st.dataframe(consultants)
         
         st.subheader("Add or Edit Role")
