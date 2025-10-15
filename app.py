@@ -47,9 +47,10 @@ def init_db():
 init_db()
 
 # Helper functions
-def get_consultants():
+def get_projects():
     with engine.connect() as conn:
-        df = pd.read_sql_query(text("SELECT * FROM public.consultants"), conn)
+        df = pd.read_sql_query(text("SELECT * FROM public.projects"), conn)
+        print(f"Retrieved projects: {len(df)} rows")
     return df
 
 def calculate_costs(duration, assignments):
