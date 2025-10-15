@@ -10,48 +10,58 @@ DB_URL = st.secrets["DB_URL"]
 engine = create_engine(DB_URL)
 
 def init_db():
-    with engine.connect() as conn:
-        # Consultants table
-        conn.execute(text('''
-            CREATE TABLE IF NOT EXISTS public.consultants (
-                role TEXT PRIMARY KEY,
-                annual_salary REAL,
-                fixed_cost REAL
-            )
-        '''))
-        # Default consultants if table is empty
-        defaults = [
-            ('Strategy Consultant', 27000, 500),
-            ('Senior Strategy Consultant', 40000, 1000),
-            ('IT Consultant', 24000, 500),
-            ('Senior IT Consultant', 37000, 1000)
-        ]
-        for default in defaults:
+    try:
+        with engine.connect() as conn:
+            # Consultants table
             conn.execute(text('''
-                INSERT INTO public.consultants (role, annual_salary, fixed_cost)
-                VALUES (:role, :salary, :fixed)
-                ON CONFLICT (role) DO NOTHING
-            '''), {'role': default[0], 'salary': default[1], 'fixed': default[2]})
-        # Projects table
-        conn.execute(text('''
-            CREATE TABLE IF NOT EXISTS public.projects (
-                id SERIAL PRIMARY KEY,
-                name TEXT,
-                duration INTEGER,
-                sales_price REAL,
-                consultants_json TEXT
-            )
-        '''))
-        conn.commit()
+                CREATE TABLE IF NOT EXISTS public.consultants (
+                    role TEXT PRIMARY KEY,
+                    annual_salary REAL,
+                    fixed_cost REAL
+                )
+            '''))
+            # Default consultants if table is empty
+            defaults = [
+                ('Strategy Consultant', 27000, 500),
+                ('Senior Strategy Consultant', 40000, 1000),
+                ('IT Consultant', 24000, 500),
+                ('Senior IT Consultant', 37000, 1000)
+            ]
+            for default in defaults:
+                conn.execute(text('''
+                    INSERT INTO public.consultants (role, annual_salary, fixed_cost)
+                    VALUES (:role, :salary, :fixed)
+                    ON CONFLICT (role) DO NOTHING
+                '''), {'role': default[0], 'salary': default[1], 'fixed': default[2]})
+            # Projects table
+            conn.execute(text('''
+                CREATE TABLE IF NOT EXISTS public.projects (
+                    id SERIAL PRIMARY KEY,
+                    name TEXT,
+                    duration INTEGER,
+                    sales_price REAL,
+                    consultants_json TEXT
+                )
+            '''))
+            conn.commit()
+            st.success("Database initialized successfully.")
+    except Exception as e:
+        st.error(f"Database initialization failed: {e}")
 
-init_db()
+# Initialize database on app start
+if 'db_initialized' not in st.session_state:
+    init_db()
+    st.session_state.db_initialized = True
 
 # Helper functions
-def get_projects():
-    with engine.connect() as conn:
-        df = pd.read_sql_query(text("SELECT * FROM public.projects"), conn)
-        print(f"Retrieved projects: {len(df)} rows")
-    return df
+def get_consultants():
+    try:
+        with engine.connect() as conn:
+            df = pd.read_sql_query(text("SELECT * FROM public.consultants"), conn)
+        return df
+    except Exception as e:
+        st.error(f"Error fetching consultants: {e}")
+        return pd.DataFrame()
 
 def calculate_costs(duration, assignments):
     consultants = get_consultants()
@@ -65,66 +75,90 @@ def calculate_costs(duration, assignments):
     return total_cost
 
 def save_project(name, duration, sales_price, assignments):
-    with engine.connect() as conn:
-        result = conn.execute(text('''
-            INSERT INTO public.projects (name, duration, sales_price, consultants_json)
-            VALUES (:name, :duration, :sales_price, :consultants_json)
-        '''), {
-            'name': name,
-            'duration': duration,
-            'sales_price': sales_price,
-            'consultants_json': json.dumps(assignments)
-        })
-        conn.commit()
-        # Debug: Check the last inserted ID
-        last_id = conn.execute(text('SELECT LASTVAL()')).scalar()
-        print(f"Saved project {name} with ID: {last_id}")
-        st.write(f"Debug: Saved project {name} with ID: {last_id}")
+    try:
+        with engine.connect() as conn:
+            result = conn.execute(text('''
+                INSERT INTO public.projects (name, duration, sales_price, consultants_json)
+                VALUES (:name, :duration, :sales_price, :consultants_json)
+            '''), {
+                'name': name,
+                'duration': duration,
+                'sales_price': sales_price,
+                'consultants_json': json.dumps(assignments)
+            })
+            conn.commit()
+            # Debug: Check the last inserted ID
+            last_id = conn.execute(text('SELECT LASTVAL()')).scalar()
+            print(f"Saved project {name} with ID: {last_id}")
+            st.success(f"Debug: Saved project {name} with ID: {last_id}")
+    except Exception as e:
+        st.error(f"Save failed: {e}")
 
 def update_project(project_id, name, duration, sales_price, assignments):
-    with engine.connect() as conn:
-        conn.execute(text('''
-            UPDATE public.projects
-            SET name=:name, duration=:duration, sales_price=:sales_price, consultants_json=:consultants_json
-            WHERE id=:id
-        '''), {
-            'name': name,
-            'duration': duration,
-            'sales_price': sales_price,
-            'consultants_json': json.dumps(assignments),
-            'id': project_id
-        })
-        conn.commit()
+    try:
+        with engine.connect() as conn:
+            conn.execute(text('''
+                UPDATE public.projects
+                SET name=:name, duration=:duration, sales_price=:sales_price, consultants_json=:consultants_json
+                WHERE id=:id
+            '''), {
+                'name': name,
+                'duration': duration,
+                'sales_price': sales_price,
+                'consultants_json': json.dumps(assignments),
+                'id': project_id
+            })
+            conn.commit()
+            st.success("Project updated!")
+    except Exception as e:
+        st.error(f"Update failed: {e}")
 
 def delete_project(project_id):
-    with engine.connect() as conn:
-        conn.execute(text("DELETE FROM public.projects WHERE id=:id"), {'id': project_id})
-        conn.commit()
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("DELETE FROM public.projects WHERE id=:id"), {'id': project_id})
+            conn.commit()
+            st.success("Project deleted!")
+    except Exception as e:
+        st.error(f"Delete failed: {e}")
 
 def get_projects():
-    with engine.connect() as conn:
-        df = pd.read_sql_query(text("SELECT * FROM public.projects"), conn)
-    return df
+    try:
+        with engine.connect() as conn:
+            df = pd.read_sql_query(text("SELECT * FROM public.projects"), conn)
+            print(f"Retrieved projects: {len(df)} rows")
+        return df
+    except Exception as e:
+        st.error(f"Error fetching projects: {e}")
+        return pd.DataFrame()
 
 def add_consultant(role, annual_salary, fixed_cost):
-    with engine.connect() as conn:
-        conn.execute(text('''
-            INSERT INTO public.consultants (role, annual_salary, fixed_cost)
-            VALUES (:role, :annual_salary, :fixed_cost)
-            ON CONFLICT (role) DO UPDATE SET
-                annual_salary = EXCLUDED.annual_salary,
-                fixed_cost = EXCLUDED.fixed_cost
-        '''), {
-            'role': role,
-            'annual_salary': annual_salary,
-            'fixed_cost': fixed_cost
-        })
-        conn.commit()
+    try:
+        with engine.connect() as conn:
+            conn.execute(text('''
+                INSERT INTO public.consultants (role, annual_salary, fixed_cost)
+                VALUES (:role, :annual_salary, :fixed_cost)
+                ON CONFLICT (role) DO UPDATE SET
+                    annual_salary = EXCLUDED.annual_salary,
+                    fixed_cost = EXCLUDED.fixed_cost
+            '''), {
+                'role': role,
+                'annual_salary': annual_salary,
+                'fixed_cost': fixed_cost
+            })
+            conn.commit()
+            st.success("Consultant saved!")
+    except Exception as e:
+        st.error(f"Add consultant failed: {e}")
 
 def delete_consultant(role):
-    with engine.connect() as conn:
-        conn.execute(text("DELETE FROM public.consultants WHERE role=:role"), {'role': role})
-        conn.commit()
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("DELETE FROM public.consultants WHERE role=:role"), {'role': role})
+            conn.commit()
+            st.success("Consultant deleted!")
+    except Exception as e:
+        st.error(f"Delete consultant failed: {e}")
 
 def export_to_excel(df, filename):
     df.to_excel(filename, index=False)
@@ -178,24 +212,22 @@ else:
                 with cols[i % 2]:
                     count = st.number_input(f"Number of {row['role']}", min_value=0, value=0, step=1)
                     assignments[row['role']] = count
-            submit = st.form_submit_button("Calculate")
+            submit = st.form_submit_button("Calculate and Save")
         
         if submit:
-            total_cost = calculate_costs(duration, assignments)
-            profit = sales_price - total_cost
-            margin = (profit / sales_price * 100) if sales_price > 0 else 0
-            st.subheader("Results")
-            st.write(f"Total Costs: €{total_cost:.2f}")
-            st.write(f"Revenue: €{sales_price:.2f}")
-            st.write(f"Profit: €{profit:.2f}")
-            st.write(f"Margin: {margin:.2f}%")
-            
-            if st.button("Save Project"):
-                if not project_name:
-                    st.error("Please enter a project name to save.")
-                else:
-                    save_project(project_name, duration, sales_price, assignments)
-                    st.success("Project saved!")
+            if not project_name:
+                st.error("Please enter a project name to save.")
+            else:
+                total_cost = calculate_costs(duration, assignments)
+                profit = sales_price - total_cost
+                margin = (profit / sales_price * 100) if sales_price > 0 else 0
+                st.subheader("Results")
+                st.write(f"Total Costs: €{total_cost:.2f}")
+                st.write(f"Revenue: €{sales_price:.2f}")
+                st.write(f"Profit: €{profit:.2f}")
+                st.write(f"Margin: {margin:.2f}%")
+                save_project(project_name, duration, sales_price, assignments)
+                st.success("Project saved!")
 
     elif page == "Saved Projects":
         st.title("Saved Projects")
@@ -231,14 +263,12 @@ else:
                                 new_assign[c_row['role']] = count
                         if st.form_submit_button("Update"):
                             update_project(row['id'], new_name, new_duration, new_sales, new_assign)
-                            st.success("Updated!")
                             st.rerun()
                     
                     col1, col2, col3 = st.columns(3)
                     with col1:
                         if st.button("Delete", key=f"del_{row['id']}"):
                             delete_project(row['id'])
-                            st.success("Deleted!")
                             st.rerun()
                     with col2:
                         df_single = pd.DataFrame([{
@@ -289,7 +319,6 @@ else:
                     st.error("Please enter a role name.")
                 else:
                     add_consultant(role, salary, fixed)
-                    st.success("Saved!")
                     st.rerun()
         
         st.subheader("Delete Role")
@@ -297,7 +326,6 @@ else:
             role_to_delete = st.selectbox("Select Role to Delete", consultants['role'].tolist())
             if st.button("Delete Role"):
                 delete_consultant(role_to_delete)
-                st.success("Deleted!")
                 st.rerun()
         else:
             st.info("No consultants to delete.")
