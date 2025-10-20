@@ -318,18 +318,3 @@ else:
                 st.rerun()
         else:
             st.info("No consultants to delete.")
-
-#### Step 4: Redeploy and Test the App
-1. After committing the changes, wait 1-2 minutes for Streamlit to automatically update the app.
-2. Open your browser and go to https://consulting-app.streamlit.app/.
-3. Log in with "test"/"test".
-4. Go to "New Project" and test the new styled sections and metrics.
-5. Save the project and go to "Saved Projects" to see the styled results.
-6. Go to "Manage Consultants" to see the improved table with alternating colors.
-
-#### Step 5: Check if It's Finalized
-1. Test all pages on your computer, tablet, and phone (resize the browser window to simulate smaller screens).
-2. Make sure the app meets all requirements (calculations, saving, editing, deleting, exports, login, responsiveness).
-3. If everything looks good, the project is finalized! You can share the link with your team.
-
-If you see any errors or want to add more (e.g., a progress bar), let me know the details. Congratulations on completing the project! (It’s 1:15 PM EAT on October 20, 2025—great work!)
