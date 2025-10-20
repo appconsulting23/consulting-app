@@ -168,7 +168,7 @@ else:
     st.markdown("<h1 style='text-align: center; color: #2c3e50; font-family: Arial;'>Consulting Project Evaluator</h1>", unsafe_allow_html=True)
 
     if page == "New Project":
-        st.title("New Project Evaluation")
+        st.markdown("<h1 style='text-align: center; color: #2c3e50; font-family: Arial; font-size: 48px;'>New Project Evaluation</h1>", unsafe_allow_html=True)
         with st.form(key="project_form"):
             project_name = st.text_input("Project Name (for saving)")
             duration = st.number_input("Project Duration (days)", min_value=1, value=30)
