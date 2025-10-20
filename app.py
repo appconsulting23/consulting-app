@@ -57,10 +57,15 @@ def calculate_costs(duration, assignments):
     total_cost = 0
     for role, count in assignments.items():
         if count > 0:
-            row = consultants[consultants['role'] == role].iloc[0]
-            daily_cost = row['annual_salary'] / 220
-            role_cost = (daily_cost * duration * count) + (row['fixed_cost'] * count)
-            total_cost += role_cost
+            filtered = consultants[consultants['role'] == role]
+            if not filtered.empty:
+                row = filtered.iloc[0]
+                daily_cost = row['annual_salary'] / 220
+                role_cost = (daily_cost * duration * count) + (row['fixed_cost'] * count)
+                total_cost += role_cost
+            else:
+                st.warning(f"Role '{role}' not found in consultants table, skipping cost calculation.")
+                print(f"Warning: Role '{role}' not found in consultants table.")
     return total_cost
 
 def save_project(name, duration, sales_price, assignments):
