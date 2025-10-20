@@ -289,7 +289,7 @@ else:
             st.info("No saved projects yet.")
 
     elif page == "Manage Consultants":
-        st.title("Manage Consultants")
+        st.markdown("<h1 style='text-align: left; color: #2c3e50; font-family: Arial; font-size: 32px;'>Manage Consultants</h1>", unsafe_allow_html=True)
         consultants = get_consultants()
         consultants.index = consultants.index + 1
         st.dataframe(consultants)
