@@ -259,14 +259,13 @@ else:
                         excel_file = export_to_excel(df_single, f"{row['name']}.xlsx")
                         if excel_file:
                             with open(excel_file, "rb") as f:
-                                st.download_button("Export to Excel", f, file_name=f"{row['name']}.xlsx")
+                                st.download_button("Export to Excel", f, file_name=f"{row['name']}.xlsx", key=f"export_excel_{row['id']}")
                             os.remove(excel_file)  # Clean up file
                     with col3:
                         pdf_file = export_to_pdf(df_single, f"{row['name']}.pdf")
                         if pdf_file:
                             with open(pdf_file, "rb") as f:
-                                st.download_button("Export to PDF", f, file_name=f"{row['name']}.pdf")
-                            os.remove(pdf_file)  # Clean up file
+                                st.download_button("Export to PDF", f, file_name=f"{row['name']}.pdf", key=f"export_pdf_{row['id']}")
             
             # Export all
             st.markdown("<h3 style='border-bottom: 2px solid #3498db; padding-bottom: 5px;'>Export All Projects</h3>", unsafe_allow_html=True)
