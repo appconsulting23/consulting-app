@@ -204,7 +204,7 @@ else:
                     st.success("Project saved!")
 
     elif page == "Saved Projects":
-        st.markdown("<h1 style='text-align: center; color: #2c3e50; font-family: Arial; font-size: 32px;'>Saved Projects</h1>", unsafe_allow_html=True)
+        st.markdown("<h1 style='text-align: left; color: #2c3e50; font-family: Arial; font-size: 32px;'>Saved Projects</h1>", unsafe_allow_html=True)
         projects = get_projects()
         if not projects.empty:
             for _, row in projects.iterrows():
