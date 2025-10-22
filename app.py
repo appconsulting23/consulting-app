@@ -267,10 +267,9 @@ else:
                             with open(pdf_file, "rb") as f:
                                 st.download_button("Export to PDF", f, file_name=f"{row['name']}.pdf", key=f"export_pdf_{row['id']}")
             
-            # Export all - FIXED: Now calculates Total Cost, Profit, Margin for each project
+            # Export all - FIXED: Now includes Total Cost, Profit, Margin
             st.markdown("<h3 style='border-bottom: 2px solid #3498db; padding-bottom: 5px;'>Export All Projects</h3>", unsafe_allow_html=True)
             
-            # Create enhanced DataFrame with calculated metrics
             export_data = []
             for _, row in projects.iterrows():
                 assignments = json.loads(row['consultants_json'])
