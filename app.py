@@ -103,7 +103,7 @@ def delete_project(project_id):
 
 def get_projects():
     with engine.connect() as conn:
-        df = pd.read_sql_query(text("SELECT * FROM public.projects"), conn)
+        df = pd.read_sql_query(text("SELECT * FROM public.consultants"), conn)
     return df
 
 def add_consultant(role, annual_salary, fixed_cost):
@@ -267,13 +267,13 @@ else:
                             with open(pdf_file, "rb") as f:
                                 st.download_button("Export to PDF", f, file_name=f"{row['name']}.pdf", key=f"export_pdf_{row['id']}")
             
-            # Export all - FIXED: Now includes Total Cost, Profit, Margin
+            # Export all - FIXED: Now includes Total Cost, Profit, Margin (NO WARNINGS)
             st.markdown("<h3 style='border-bottom: 2px solid #3498db; padding-bottom: 5px;'>Export All Projects</h3>", unsafe_allow_html=True)
             
             export_data = []
             for _, row in projects.iterrows():
                 assignments = json.loads(row['consultants_json'])
-                total_cost = calculate_costs(row['duration'], assignments)
+                total_cost = calculate_costs_silent(row['duration'], assignments)
                 profit = row['sales_price'] - total_cost
                 margin = (profit / row['sales_price'] * 100) if row['sales_price'] > 0 else 0
                 export_data.append({
