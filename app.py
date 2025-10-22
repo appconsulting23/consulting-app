@@ -63,9 +63,7 @@ def calculate_costs(duration, assignments):
                 daily_cost = row['annual_salary'] / 220
                 role_cost = (daily_cost * duration * count) + (row['fixed_cost'] * count)
                 total_cost += role_cost
-            else:
-                st.warning(f"Role '{role}' not found in consultants table, skipping cost calculation.")
-                print(f"Warning: Role '{role}' not found in consultants table.")
+            # Silently skip missing roles - NO WARNING
     return total_cost
 
 def save_project(name, duration, sales_price, assignments):
@@ -103,7 +101,7 @@ def delete_project(project_id):
 
 def get_projects():
     with engine.connect() as conn:
-        df = pd.read_sql_query(text("SELECT * FROM public.consultants"), conn)
+        df = pd.read_sql_query(text("SELECT * FROM public.projects"), conn)
     return df
 
 def add_consultant(role, annual_salary, fixed_cost):
@@ -273,7 +271,7 @@ else:
             export_data = []
             for _, row in projects.iterrows():
                 assignments = json.loads(row['consultants_json'])
-                total_cost = calculate_costs_silent(row['duration'], assignments)
+                total_cost = calculate_costs(row['duration'], assignments)
                 profit = row['sales_price'] - total_cost
                 margin = (profit / row['sales_price'] * 100) if row['sales_price'] > 0 else 0
                 export_data.append({
