@@ -267,11 +267,27 @@ else:
                             with open(pdf_file, "rb") as f:
                                 st.download_button("Export to PDF", f, file_name=f"{row['name']}.pdf", key=f"export_pdf_{row['id']}")
             
-            # Export all
+            # Export all - FIXED: Now calculates Total Cost, Profit, Margin for each project
             st.markdown("<h3 style='border-bottom: 2px solid #3498db; padding-bottom: 5px;'>Export All Projects</h3>", unsafe_allow_html=True)
-            all_df = projects.copy()
-            all_df['consultants'] = all_df['consultants_json'].apply(json.loads)
-            all_df = all_df.drop('consultants_json', axis=1)  # Simplify for export
+            
+            # Create enhanced DataFrame with calculated metrics
+            export_data = []
+            for _, row in projects.iterrows():
+                assignments = json.loads(row['consultants_json'])
+                total_cost = calculate_costs(row['duration'], assignments)
+                profit = row['sales_price'] - total_cost
+                margin = (profit / row['sales_price'] * 100) if row['sales_price'] > 0 else 0
+                export_data.append({
+                    'Name': row['name'],
+                    'Duration': row['duration'],
+                    'Sales Price': row['sales_price'],
+                    'Total Cost': total_cost,
+                    'Profit': profit,
+                    'Margin': margin
+                })
+            
+            all_df = pd.DataFrame(export_data)
+            
             col1, col2 = st.columns(2)
             with col1:
                 all_excel = export_to_excel(all_df, "all_projects.xlsx")
