@@ -67,17 +67,22 @@ def calculate_costs(duration, assignments):
     return total_cost
 
 def save_project(name, duration, sales_price, assignments):
-    with engine.connect() as conn:
-        conn.execute(text('''
-            INSERT INTO public.projects (name, duration, sales_price, consultants_json)
-            VALUES (:name, :duration, :sales_price, :consultants_json)
-        '''), {
-            'name': name,
-            'duration': duration,
-            'sales_price': sales_price,
-            'consultants_json': json.dumps(assignments)
-        })
-        conn.commit()
+    try:
+        with engine.connect() as conn:
+            conn.execute(text('''
+                INSERT INTO public.projects (name, duration, sales_price, consultants_json)
+                VALUES (:name, :duration, :sales_price, :consultants_json)
+            '''), {
+                'name': name,
+                'duration': duration,
+                'sales_price': sales_price,
+                'consultants_json': json.dumps(assignments)
+            })
+            conn.commit()
+    except Exception as e:
+        st.error(f"Failed to save project: {str(e)}")
+        return False
+    return True
 
 def update_project(project_id, name, duration, sales_price, assignments):
     with engine.connect() as conn:
@@ -198,8 +203,11 @@ else:
                 if not project_name:
                     st.error("Please enter a project name to save.")
                 else:
-                    save_project(project_name, duration, sales_price, assignments)
-                    st.success("Project saved!")
+                    if save_project(project_name, duration, sales_price, assignments):
+                        st.success("Project saved successfully!")
+                        st.rerun()  # Refresh to show updated projects
+                    else:
+                        st.error("Project save failed. Check database connection or contact support.")
 
     elif page == "Saved Projects":
         st.markdown("<h1 style='text-align: left; color: #2c3e50; font-family: Arial; font-size: 32px;'>Saved Projects</h1>", unsafe_allow_html=True)
