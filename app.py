@@ -76,13 +76,12 @@ def calculate_costs(duration, assignments):
                 total_cost += role_cost
             else:
                 st.warning(f"Role '{role}' not found in consultants table, skipping cost calculation.")
-                print(f"Warning: Role '{role}' not found in consultants table.")
     return total_cost
 
 def save_project(name, duration, sales_price, assignments):
     try:
         with engine.connect() as conn:
-            result = conn.execute(text('''
+            conn.execute(text('''
                 INSERT INTO public.projects (name, duration, sales_price, consultants_json)
                 VALUES (:name, :duration, :sales_price, :consultants_json)
             '''), {
@@ -92,10 +91,8 @@ def save_project(name, duration, sales_price, assignments):
                 'consultants_json': json.dumps(assignments)
             })
             conn.commit()
-            # Debug: Check the last inserted ID
             last_id = conn.execute(text('SELECT LASTVAL()')).scalar()
-            print(f"Saved project {name} with ID: {last_id}")
-            st.success(f"Debug: Saved project {name} with ID: {last_id}")
+            st.success(f"Project '{name}' saved with ID: {last_id}")
     except Exception as e:
         st.error(f"Save failed: {e}")
 
@@ -131,7 +128,6 @@ def get_projects():
     try:
         with engine.connect() as conn:
             df = pd.read_sql_query(text("SELECT * FROM public.projects"), conn)
-            print(f"Retrieved projects: {len(df)} rows")
         return df
     except Exception as e:
         st.error(f"Error fetching projects: {e}")
@@ -169,11 +165,6 @@ def export_to_excel(df, filename):
     try:
         df.to_excel(filename, index=False)
         return filename
-    except ModuleNotFoundError:
-        st.error("Excel export failed: 'openpyxl' is not installed. Exporting to CSV instead.")
-        csv_filename = filename.replace('.xlsx', '.csv')
-        df.to_csv(csv_filename, index=False)
-        return csv_filename
     except Exception as e:
         st.error(f"Export to Excel failed: {e}")
         return None
@@ -216,13 +207,16 @@ else:
     st.sidebar.title("Navigation")
     page = st.sidebar.radio("Go to", ["New Project", "Saved Projects", "Manage Consultants"])
 
+    # Add consistent title on each page
+    st.markdown("<h1 style='text-align: center; color: #2c3e50; font-family: Arial;'>Consulting Project Evaluator</h1>", unsafe_allow_html=True)
+
     if page == "New Project":
-        st.title("New Project Evaluation")
+        st.markdown("<h1 style='text-align: left; color: #2c3e50; font-family: Arial; font-size: 32px;'>New Project Evaluation</h1>", unsafe_allow_html=True)
         with st.form(key="project_form"):
             project_name = st.text_input("Project Name (for saving)")
             duration = st.number_input("Project Duration (days)", min_value=1, value=30)
             sales_price = st.number_input("Proposed Sales Price (€)", min_value=0.0, value=10000.0)
-            st.subheader("Assign Consultants")
+            st.markdown("<h3 style='border-bottom: 2px solid #3498db; padding-bottom: 5px;'>Assign Consultants</h3>", unsafe_allow_html=True)
             consultants = get_consultants()
             assignments = {}
             cols = st.columns(2)
@@ -239,19 +233,21 @@ else:
                 total_cost = calculate_costs(duration, assignments)
                 profit = sales_price - total_cost
                 margin = (profit / sales_price * 100) if sales_price > 0 else 0
-                st.subheader("Results")
-                st.write(f"Total Costs: €{total_cost:.2f}")
-                st.write(f"Revenue: €{sales_price:.2f}")
-                st.write(f"Profit: €{profit:.2f}")
-                st.write(f"Margin: {margin:.2f}%")
+                st.markdown("<h3 style='border-bottom: 2px solid #3498db; padding-bottom: 5px;'>Results</h3>", unsafe_allow_html=True)
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.markdown(f"<div style='background-color: #e74c3c; color: white; padding: 10px; border-radius: 5px;'>Total Costs: €{total_cost:.2f}</div>", unsafe_allow_html=True)
+                with col2:
+                    st.markdown(f"<div style='background-color: #2ecc71; color: white; padding: 10px; border-radius: 5px;'>Profit: €{profit:.2f}</div>", unsafe_allow_html=True)
+                with col3:
+                    st.markdown(f"<div style='background-color: #3498db; color: white; padding: 10px; border-radius: 5px;'>Margin: {margin:.2f}%</div>", unsafe_allow_html=True)
                 save_project(project_name, duration, sales_price, assignments)
-                st.success("Project saved!")
 
     elif page == "Saved Projects":
-        st.title("Saved Projects")
+        st.markdown("<h1 style='text-align: left; color: #2c3e50; font-family: Arial; font-size: 32px;'>Saved Projects</h1>", unsafe_allow_html=True)
         projects = get_projects()
         if not projects.empty:
-            # Initialize a counter for unique keys per session
+            # Unique key counter for download buttons
             if 'download_button_counter' not in st.session_state:
                 st.session_state.download_button_counter = 0
             
@@ -263,10 +259,15 @@ else:
                     total_cost = calculate_costs(row['duration'], assignments)
                     profit = row['sales_price'] - total_cost
                     margin = (profit / row['sales_price'] * 100) if row['sales_price'] > 0 else 0
-                    st.write(f"Total Costs: €{total_cost:.2f}")
-                    st.write(f"Profit: €{profit:.2f}")
-                    st.write(f"Margin: {margin:.2f}%")
-                    st.subheader("Assigned Consultants")
+                    st.markdown("<h3 style='border-bottom: 2px solid #3498db; padding-bottom: 5px;'>Results</h3>", unsafe_allow_html=True)
+                    col1, col2, col3 = st.columns(3)
+                    with col1:
+                        st.markdown(f"<div style='background-color: #e74c3c; color: white; padding: 10px; border-radius: 5px;'>Total Costs: €{total_cost:.2f}</div>", unsafe_allow_html=True)
+                    with col2:
+                        st.markdown(f"<div style='background-color: #2ecc71; color: white; padding: 10px; border-radius: 5px;'>Profit: €{profit:.2f}</div>", unsafe_allow_html=True)
+                    with col3:
+                        st.markdown(f"<div style='background-color: #3498db; color: white; padding: 10px; border-radius: 5px;'>Margin: {margin:.2f}%</div>", unsafe_allow_html=True)
+                    st.markdown("<h3 style='border-bottom: 2px solid #3498db; padding-bottom: 5px;'>Assigned Consultants</h3>", unsafe_allow_html=True)
                     for role, count in assignments.items():
                         if count > 0:
                             st.write(f"{role}: {count}")
@@ -302,20 +303,32 @@ else:
                             with open(excel_file, "rb") as f:
                                 st.session_state.download_button_counter += 1
                                 st.download_button("Export to Excel", f, file_name=f"{row['name']}.xlsx", key=f"export_excel_{row['id']}_{st.session_state.download_button_counter}")
-                            os.remove(excel_file)  # Clean up file
+                            os.remove(excel_file)
                     with col3:
                         pdf_file = export_to_pdf(df_single, f"{row['name']}.pdf")
                         if pdf_file:
                             with open(pdf_file, "rb") as f:
                                 st.session_state.download_button_counter += 1
                                 st.download_button("Export to PDF", f, file_name=f"{row['name']}.pdf", key=f"export_pdf_{row['id']}_{st.session_state.download_button_counter}")
-                            os.remove(pdf_file)  # Clean up file
+                            os.remove(pdf_file)
             
-            # Export all
-            st.subheader("Export All Projects")
-            all_df = projects.copy()
-            all_df['consultants'] = all_df['consultants_json'].apply(json.loads)
-            all_df = all_df.drop('consultants_json', axis=1)  # Simplify for export
+            # Export all with calculated metrics
+            st.markdown("<h3 style='border-bottom: 2px solid #3498db; padding-bottom: 5px;'>Export All Projects</h3>", unsafe_allow_html=True)
+            export_data = []
+            for _, row in projects.iterrows():
+                assignments = json.loads(row['consultants_json'])
+                total_cost = calculate_costs(row['duration'], assignments)
+                profit = row['sales_price'] - total_cost
+                margin = (profit / row['sales_price'] * 100) if row['sales_price'] > 0 else 0
+                export_data.append({
+                    'Name': row['name'],
+                    'Duration': row['duration'],
+                    'Sales Price': row['sales_price'],
+                    'Total Cost': total_cost,
+                    'Profit': profit,
+                    'Margin': margin
+                })
+            all_df = pd.DataFrame(export_data)
             col1, col2 = st.columns(2)
             with col1:
                 all_excel = export_to_excel(all_df, "all_projects.xlsx")
@@ -323,25 +336,30 @@ else:
                     with open(all_excel, "rb") as f:
                         st.session_state.download_button_counter += 1
                         st.download_button("Export All to Excel", f, file_name="all_projects.xlsx", key=f"export_all_excel_{st.session_state.download_button_counter}")
-                    os.remove(all_excel)  # Clean up
+                    os.remove(all_excel)
             with col2:
                 all_pdf = export_to_pdf(all_df, "all_projects.pdf")
                 if all_pdf:
                     with open(all_pdf, "rb") as f:
                         st.session_state.download_button_counter += 1
                         st.download_button("Export All to PDF", f, file_name="all_projects.pdf", key=f"export_all_pdf_{st.session_state.download_button_counter}")
-                    os.remove(all_pdf)  # Clean up
+                    os.remove(all_pdf)
         else:
             st.info("No saved projects yet.")
 
     elif page == "Manage Consultants":
-        st.title("Manage Consultants")
+        st.markdown("<h1 style='text-align: left; color: #2c3e50; font-family: Arial; font-size: 32px;'>Manage Consultants</h1>", unsafe_allow_html=True)
         consultants = get_consultants()
-        # Shift index to start from 1 for display
         consultants.index = consultants.index + 1
         st.dataframe(consultants)
+        st.markdown("""
+            <style>
+            .stDataFrame tr:nth-child(even) {background-color: #f2f2f2;}
+            .stDataFrame th {background-color: #3498db; color: white;}
+            </style>
+            """, unsafe_allow_html=True)
         
-        st.subheader("Add or Edit Role")
+        st.markdown("<h3 style='border-bottom: 2px solid #3498db; padding-bottom: 5px;'>Add or Edit Role</h3>", unsafe_allow_html=True)
         with st.form(key="consultant_form"):
             role = st.text_input("Role Name")
             salary = st.number_input("Annual Salary (€)", min_value=0.0)
@@ -353,7 +371,7 @@ else:
                     add_consultant(role, salary, fixed)
                     st.rerun()
         
-        st.subheader("Delete Role")
+        st.markdown("<h3 style='border-bottom: 2px solid #3498db; padding-bottom: 5px;'>Delete Role</h3>", unsafe_allow_html=True)
         if not consultants.empty:
             role_to_delete = st.selectbox("Select Role to Delete", consultants['role'].tolist())
             if st.button("Delete Role"):
